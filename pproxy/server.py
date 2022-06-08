@@ -296,12 +296,15 @@ class ProxySimple(ProxyDirect):
         whost, wport = self.jump.destination(host, port)
         await self.rproto.connect(reader_remote=reader_remote, writer_remote=writer_remote, rauth=self.auth, host_name=whost, port=wport, writer_cipher_r=writer_cipher_r, myhost=self.host_name, sock=writer_remote.get_extra_info('socket'))
         return await self.jump.prepare_connection(reader_remote, writer_remote, host, port)
-    def start_server(self, args, stream_handler=stream_handler):
+    def start_server(self, args, sock=None, stream_handler=stream_handler):
         handler = functools.partial(stream_handler, **vars(self), **args)
         if self.unix:
             return asyncio.start_unix_server(handler, path=self.bind)
         else:
-            return asyncio.start_server(handler, host=self.host_name, port=self.port, reuse_port=args.get('ruport'))
+            if sock is None:
+                return asyncio.start_server(handler, host=self.host_name, port=self.port, reuse_port=args.get('ruport'))
+            else:
+                return asyncio.start_server(handler, reuse_port=args.get('ruport'), sock=sock)
 
 class ProxyH2(ProxySimple):
     def __init__(self, sslserver, sslclient, **kw):
